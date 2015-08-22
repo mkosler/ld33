@@ -1,7 +1,7 @@
-var SPACE_WIDTH = 40,
-    SPACE_HEIGHT = 30,
-    GAME_WIDTH = 400,
-    GAME_HEIGHT = 300;
+var SPACE_WIDTH = 80,
+    SPACE_HEIGHT = 60,
+    GAME_WIDTH = 800,
+    GAME_HEIGHT = 600;
 
 var data = [
     [ 0, 0, 1, 0, 1, 0, 0, 0, 0, 0 ],
@@ -30,11 +30,11 @@ function Level(data, rows, columns) {
     this._rects = [];
 
     this.leftHeld = false;
+
     this.rightHeld = false;
 
     // grid background
     this._gridGraphic.lineStyle(0.5, 0xFFFFFF, 1);
-
 
     for (var i = 0; i < rows; i++) {
         this._gridGraphic.moveTo(0, SPACE_HEIGHT * i);
@@ -47,7 +47,6 @@ function Level(data, rows, columns) {
     }
 
     this.container.addChild(this._gridGraphic);
-
 
     // rects
     for (r = 0; r < rows; r++) {
@@ -167,7 +166,90 @@ Level.prototype = {
             }.bind(this));
         }.bind(this));
 
-        if (specials.filter(function(s) { return s === false; }).length === 0) console.log('yay!');
+        return specials.filter(function(s) { return s === false; }).length === 0;
+    },
+
+    isPathComplete: function() {
+        var pathRects = this._rects.reduce(function(pr, row) {
+            return pr.concat(row.filter(function(rect) {
+                var rectCount = 0;
+
+                if (rect.up) rectCount++;
+                if (rect.down) rectCount++;
+                if (rect.left) rectCount++;
+                if (rect.right) rectCount++;
+
+                return rectCount === 2;
+            }));
+        }, []);
+
+        if (pathRects.length === 0) return false;
+
+        var passed = false;
+
+        pathRects.forEach(function(rect) {
+            rect.hOpen = rect.vOpen = true;
+        });
+
+        var count = 0;
+
+        function recur(rect, allRects, origin, first) {
+            var nextRect = null;
+
+            if (nextRect === null && rect.left) {
+                nextRect = allRects[rect.row][rect.column - 1];
+
+                if (!nextRect.hOpen) {
+                    nextRect = null;
+                } else {
+                    nextRect.hOpen = rect.hOpen = false;
+                }
+            }
+            
+            if (nextRect === null && rect.right) {
+                nextRect = allRects[rect.row][rect.column + 1];
+
+                if (!nextRect.hOpen) {
+                    nextRect = null;
+                } else {
+                    nextRect.hOpen = rect.hOpen = false;
+                }
+            }
+            
+            if (nextRect === null && rect.up) {
+                nextRect = allRects[rect.row - 1][rect.column];
+
+                if (!nextRect.vOpen) {
+                    nextRect = null;
+                } else {
+                    nextRect.vOpen = rect.vOpen = false;
+                }
+            }
+            
+            if (nextRect === null && rect.down) {
+                nextRect = allRects[rect.row + 1][rect.column];
+
+                if (!nextRect.vOpen) {
+                    nextRect = null;
+                } else {
+                    nextRect.vOpen = rect.vOpen = false;
+                }
+            }
+
+            if (nextRect !== null) {
+                return recur(nextRect, allRects, origin, false);
+            } else if (!rect.hOpen && !rect.vOpen && rect === origin) {
+                origin.finished = true;
+
+                return;
+            }
+        }
+
+        pathRects[0].finished = false;
+
+        recur(pathRects[0], this._rects, pathRects[0], true);
+
+        return pathRects.filter(function(rect) { return rect.open; }).length === 0 && pathRects[0].finished;
     }
 };
 
@@ -298,7 +380,6 @@ function onMouseMove(e) {
 
                                 level.container.addChild(rl);
                             }
-
                         } else if (level.rightHeld &&
                                    ((lr.column === rect.column - 1 && (typeof(lr.rightLine) !== 'undefined' && lr.rightLine !== null)) ||
                                     (lr.column === rect.column + 1 && (typeof(rect.rightLine) !== 'undefined' && rect.rightLine !== null)))) {
@@ -338,40 +419,60 @@ document.body.appendChild(renderer.view);
 
 var stage = new PIXI.Container();
 
-stage.hitArea = new PIXI.Rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT);
-
-stage.interactive = true;
-stage.buttonMode = true;
-
-stage.on('mousedown', onMouseDown)
-     .on('mousemove', onMouseMove)
-     .on('mouseup', onMouseUp);
+//stage.hitArea = new PIXI.Rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
 //stage.interactive = true;
-
-//stage.on('click', function() { console.log('FUCK YOU'); });
+//stage.buttonMode = true;
 
 //stage.on('mousedown', onMouseDown)
      //.on('mousemove', onMouseMove)
      //.on('mouseup', onMouseUp)
-     //.on('click', function() { console.log('FUCK'); });
-
-//stage.mousedown = onMouseDown;
-//stage.mousemove = onMouseMove;
-//stage.mouseup = onMouseUp;
-
-//document.body.onmousedown = onMouseDown;
-//document.body.onmousemove = onMouseMove;
-//document.body.onmouseup = onMouseUp;
+     //.on('mouseupoutside', onMouseUp);
 
 var level = new Level(data, 10, 10);
 
+level.container.hitArea = new PIXI.Rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+level.container.interactive = true;
+
+level.container.buttonMode = true;
+
+level.container.on('mousedown', onMouseDown)
+               .on('mousemove', onMouseMove)
+               .on('mouseup', onMouseUp)
+               .on('mouseupoutside', onMouseUp);
+
+var winnerText = null;
+
 stage.addChild(level.container);
+
+var music = new Audio('level.wav');
+
+music.loop = true;
+
+music.play();
 
 function animate() {
     requestAnimationFrame(animate);
 
-    level.isComplete();
+    if ((typeof(winnerText) === 'undefined' || winnerText === null) &&
+        level.isComplete() && level.isPathComplete()) {
+
+        winnerText = new PIXI.Text('Winner!', {
+            align: 'center',
+            stroke: 0xAFB4BB,
+            strokeThickness: 2
+        });
+
+        winnerText.x = GAME_WIDTH / 2;
+        winnerText.y = GAME_HEIGHT / 2;
+
+        stage.addChild(winnerText);
+
+        level.container.interactive = false;
+
+        level.container.buttonMode = false;
+    }
 
     renderer.render(stage);
 }
