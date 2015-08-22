@@ -446,7 +446,7 @@ var winnerText = null;
 
 stage.addChild(level.container);
 
-var music = new Audio('level.wav');
+var music = new Audio('level.mp3');
 
 music.loop = true;
 
