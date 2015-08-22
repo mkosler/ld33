@@ -17,6 +17,10 @@ var data = [
 ];
 
 function Level(data, rows, columns) {
+    this.rows = rows;
+
+    this.columns = columns;
+
     this._data = data;
 
     this.container = new PIXI.Container();
@@ -44,6 +48,31 @@ function Level(data, rows, columns) {
 
     this.container.addChild(this._gridGraphic);
 
+
+    // rects
+    for (r = 0; r < rows; r++) {
+        var row = [];
+
+        for (c = 0; c < columns; c++) {
+            var rect = new PIXI.Rectangle(SPACE_WIDTH * c, SPACE_HEIGHT * r, SPACE_WIDTH, SPACE_HEIGHT);
+
+            rect.row = r;
+            rect.column = c;
+
+            rect.centerX = rect.x + rect.width / 2;
+            rect.centerY = rect.y + rect.height / 2;
+
+            rect.left = false;
+            rect.right = false;
+            rect.up = false;
+            rect.down = false;
+
+            row.push(rect);
+        }
+
+        this._rects.push(row);
+    }
+
     data.forEach(function(row, r) {
         row.forEach(function(column, c) {
             if (column !== 0) {
@@ -59,27 +88,88 @@ function Level(data, rows, columns) {
                 special.endFill();
 
                 this.container.addChild(special);
+
+                this._rects[r][c].graphic = special;
             }
         }.bind(this));
     }.bind(this));
-
-    // rects
-    for (r = 0; r < rows; r++) {
-        for (c = 0; c < columns; c++) {
-            var rect = new PIXI.Rectangle(SPACE_WIDTH * c, SPACE_HEIGHT * r, SPACE_WIDTH, SPACE_HEIGHT);
-
-            rect.row = r;
-            rect.column = c;
-
-            rect.centerX = rect.x + rect.width / 2;
-            rect.centerY = rect.y + rect.height / 2;
-
-            this._rects.push(rect);
-        }
-    }
 }
 
-Level.prototype = {};
+Level.prototype = {
+    isComplete: function() {
+        var specials = [];
+
+        this._data.forEach(function (row, r) {
+            row.forEach(function (column, c) {
+                if (column !== 0) {
+                    var passed = false,
+                        middleRect = this._rects[r][c],
+                        leftRect = (c - 1 >= 0) ? this._rects[r][c - 1] : null,
+                        rightRect = (c + 1 < this._rects[r].length) ? this._rects[r][c + 1] : null,
+                        upRect = (r - 1 >= 0) ? this._rects[r - 1][c] : null,
+                        downRect = (r + 1 < this._rects.length) ? this._rects[r + 1][c] : null;
+
+                    middleRect.graphic.tint = 0xFFFFFF;
+
+                    if (column === 1) {
+                        if (middleRect.left && middleRect.right && !middleRect.up && !middleRect.down) {
+                            if (leftRect !== null &&
+                                (leftRect.up || leftRect.down)) {
+
+                                passed = true;
+                            } else if (rightRect !== null &&
+                                       (rightRect.up || rightRect.down)) {
+
+                                passed = true;
+                            }
+                        } else if (middleRect.up && middleRect.down && !middleRect.left && !middleRect.right) {
+
+                            if (upRect !== null &&
+                                (upRect.left || upRect.right)) {
+
+                                passed = true;
+                            } else if (downRect !== null &&
+                                       (downRect.left || downRect.right)) {
+
+                                passed = true;
+                            }
+                        }
+                    } else if (column === 2) {
+                        var horizRect = null,
+                            vertRect = null;
+
+                        if (middleRect.left && !middleRect.right) {
+                            horizRect = leftRect;
+                        } else if (middleRect.right && !middleRect.left) {
+                            horizRect = rightRect;
+                        }
+
+                        if (middleRect.up && !middleRect.down) {
+                            vertRect = upRect;
+                        } else if (middleRect.down && !middleRect.up) {
+                            vertRect = downRect;
+                        }
+
+                        if (horizRect !== null && horizRect.left && horizRect.right && !horizRect.down && !horizRect.up &&
+                            vertRect !== null && vertRect.up && vertRect.down && !vertRect.left && !vertRect.right) {
+
+                            passed = true;
+                        }
+                    }
+
+                    if (passed) {
+                        middleRect.graphic.tint = 0x00FF00;
+                    }
+
+                    specials.push(passed);
+                }
+
+            }.bind(this));
+        }.bind(this));
+
+        if (specials.filter(function(s) { return s === false; }).length === 0) console.log('yay!');
+    }
+};
 
 function onMouseDown(e) {
     var eventData = e.data.originalEvent;
@@ -98,82 +188,108 @@ function onMouseUp(e) {
 function onMouseMove(e) {
     var eventData = e.data.originalEvent;
 
-    level._rects.forEach(function(rect) {
-        if (rect.contains(e.data.global.x, e.data.global.y)) {
-            if (typeof(level.lastRect) !== 'undefined' && level.lastRect !== null) {
-                var lr = level.lastRect;
+    level._rects.forEach(function(row) {
+        row.forEach(function (rect) {
+            if (rect.contains(e.data.global.x, e.data.global.y)) {
+                if (typeof(level.lastRect) !== 'undefined' && level.lastRect !== null) {
+                    var lr = level.lastRect;
 
-                if ((lr.row === rect.row - 1 || lr.row === rect.row + 1) &&
-                    lr.column === rect.column) {
+                    if ((lr.row === rect.row - 1 || lr.row === rect.row + 1) &&
+                        lr.column === rect.column) {
 
-                    if (level.leftHeld &&
-                        ((lr.row === rect.row - 1 && (typeof(lr.downLine) === 'undefined' || lr.downLine === null)) ||
-                        (lr.row === rect.row + 1 && (typeof(rect.downLine) === 'undefined' || rect.downLine === null)))) {
+                        if (level.leftHeld &&
+                            ((lr.row === rect.row - 1 && (typeof(lr.downLine) === 'undefined' || lr.downLine === null)) ||
+                            (lr.row === rect.row + 1 && (typeof(rect.downLine) === 'undefined' || rect.downLine === null)))) {
 
-                        var dl = new PIXI.Graphics();
+                            var dl = new PIXI.Graphics();
 
-                        dl.lineStyle(2, 0xFFFF00, 1);
+                            dl.lineStyle(2, 0xFFFF00, 1);
 
-                        dl.moveTo(lr.centerX, lr.centerY);
-                        dl.lineTo(rect.centerX, rect.centerY);
+                            dl.moveTo(lr.centerX, lr.centerY);
+                            dl.lineTo(rect.centerX, rect.centerY);
 
-                        if (lr.row === rect.row - 1) {
-                            lr.downLine = dl;
-                        } else {
-                            rect.downLine = dl;
+                            if (lr.row === rect.row - 1) {
+                                lr.downLine = dl;
+
+                                lr.down = true;
+                                rect.up = true;
+                            } else {
+                                rect.downLine = dl;
+
+                                rect.down = true;
+                                lr.up = true;
+                            }
+
+                            level.container.addChild(dl);
+
+                        } else if (level.rightHeld &&
+                                   ((lr.row === rect.row - 1 && (typeof(lr.downLine) !== 'undefined' && lr.downLine !== null)) ||
+                                    (lr.row === rect.row + 1 && (typeof(rect.downLine) !== 'undefined' && rect.downLine !== null)))) {
+
+                            if (lr.row === rect.row - 1) {
+                                level.container.removeChild(lr.downLine);
+
+                                lr.down = false;
+                                rect.up = false;
+                            } else {
+                                level.container.removeChild(rect.downLine);
+
+                                rect.down = false;
+                                lr.up = false;
+                            }
                         }
+                    }
 
-                        level.container.addChild(dl);
+                    if (lr.row === rect.row &&
+                        (lr.column === rect.column - 1 || lr.column === rect.column + 1)) {
 
-                    } else if (level.rightHeld &&
-                               ((lr.row === rect.row - 1 && (typeof(lr.downLine) !== 'undefined' && lr.downLine !== null)) ||
-                                (lr.row === rect.row + 1 && (typeof(rect.downLine) !== 'undefined' && rect.downLine !== null)))) {
+                        if (level.leftHeld &&
+                            ((lr.column === rect.column - 1 && (typeof(lr.rightLine) === 'undefined' || lr.rightLine === null)) ||
+                             (lr.column === rect.column + 1 && (typeof(rect.rightLine) === 'undefined' || rect.rightLine === null)))) {
 
-                        if (lr.row === rect.row - 1) {
-                            level.container.removeChild(lr.downLine);
-                        } else {
-                            level.container.removeChild(rect.downLine);
+                            var rl = new PIXI.Graphics();
+
+                            rl.lineStyle(2, 0xFFFF00, 1);
+
+                            rl.moveTo(lr.centerX, lr.centerY);
+                            rl.lineTo(rect.centerX, rect.centerY);
+
+                            if (lr.column === rect.column - 1) {
+                                lr.rightLine = rl;
+
+                                lr.right = true;
+                                rect.left = true;
+                            } else {
+                                rect.rightLine = rl;
+
+                                rect.right = true;
+                                lr.left = true;
+                            }
+
+                            level.container.addChild(rl);
+
+                        } else if (level.rightHeld &&
+                                   ((lr.column === rect.column - 1 && (typeof(lr.rightLine) !== 'undefined' && lr.rightLine !== null)) ||
+                                    (lr.column === rect.column + 1 && (typeof(rect.rightLine) !== 'undefined' && rect.rightLine !== null)))) {
+
+                            if (lr.column === rect.column - 1) {
+                                level.container.removeChild(lr.rightLine);
+
+                                lr.right = false;
+                                rect.left = false;
+                            } else {
+                                level.container.removeChild(rect.rightLine);
+
+                                rect.right = false;
+                                lr.left = false;
+                            }
                         }
                     }
                 }
 
-                if (lr.row === rect.row &&
-                    (lr.column === rect.column - 1 || lr.column === rect.column + 1)) {
-
-                    if (level.leftHeld &&
-                        ((lr.column === rect.column - 1 && (typeof(lr.rightLine) === 'undefined' || lr.rightLine === null)) ||
-                         (lr.column === rect.column + 1 && (typeof(rect.rightLine) === 'undefined' || rect.rightLine === null)))) {
-
-                        var rl = new PIXI.Graphics();
-
-                        rl.lineStyle(2, 0xFFFF00, 1);
-
-                        rl.moveTo(lr.centerX, lr.centerY);
-                        rl.lineTo(rect.centerX, rect.centerY);
-
-                        if (lr.column === rect.column - 1) {
-                            lr.rightLine = rl;
-                        } else {
-                            rect.rightLine = rl;
-                        }
-
-                        level.container.addChild(rl);
-
-                    } else if (level.rightHeld &&
-                               ((lr.column === rect.column - 1 && (typeof(lr.rightLine) !== 'undefined' && lr.rightLine !== null)) ||
-                                (lr.column === rect.column + 1 && (typeof(rect.rightLine) !== 'undefined' && rect.rightLine !== null)))) {
-
-                        if (lr.column === rect.column - 1) {
-                            level.container.removeChild(lr.rightLine);
-                        } else {
-                            level.container.removeChild(rect.rightLine);
-                        }
-                    }
-                }
+                level.lastRect = rect;
             }
-
-            level.lastRect = rect;
-        }
+        });
     });
 }
 
@@ -215,6 +331,8 @@ stage.addChild(level.container);
 
 function animate() {
     requestAnimationFrame(animate);
+
+    level.isComplete();
 
     renderer.render(stage);
 }
