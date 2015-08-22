@@ -192,7 +192,9 @@ function onMouseMove(e) {
         row.forEach(function (rect) {
             if (rect.contains(e.data.global.x, e.data.global.y)) {
                 if (typeof(level.lastRect) !== 'undefined' && level.lastRect !== null) {
-                    var lr = level.lastRect;
+                    var lr = level.lastRect,
+                        rectCount = 0,
+                        lrCount = 0;
 
                     if ((lr.row === rect.row - 1 || lr.row === rect.row + 1) &&
                         lr.column === rect.column) {
@@ -201,27 +203,38 @@ function onMouseMove(e) {
                             ((lr.row === rect.row - 1 && (typeof(lr.downLine) === 'undefined' || lr.downLine === null)) ||
                             (lr.row === rect.row + 1 && (typeof(rect.downLine) === 'undefined' || rect.downLine === null)))) {
 
-                            var dl = new PIXI.Graphics();
+                            if (rect.up) rectCount++;
+                            if (rect.down) rectCount++;
+                            if (rect.left) rectCount++;
+                            if (rect.right) rectCount++;
 
-                            dl.lineStyle(2, 0xFFFF00, 1);
+                            if (lr.up) lrCount++;
+                            if (lr.down) lrCount++;
+                            if (lr.left) lrCount++;
+                            if (lr.right) lrCount++;
 
-                            dl.moveTo(lr.centerX, lr.centerY);
-                            dl.lineTo(rect.centerX, rect.centerY);
+                            if (rectCount <= 1 && lrCount <= 1) {
+                                var dl = new PIXI.Graphics();
 
-                            if (lr.row === rect.row - 1) {
-                                lr.downLine = dl;
+                                dl.lineStyle(2, 0xFFFF00, 1);
 
-                                lr.down = true;
-                                rect.up = true;
-                            } else {
-                                rect.downLine = dl;
+                                dl.moveTo(lr.centerX, lr.centerY);
+                                dl.lineTo(rect.centerX, rect.centerY);
 
-                                rect.down = true;
-                                lr.up = true;
+                                if (lr.row === rect.row - 1) {
+                                    lr.downLine = dl;
+
+                                    lr.down = true;
+                                    rect.up = true;
+                                } else {
+                                    rect.downLine = dl;
+
+                                    rect.down = true;
+                                    lr.up = true;
+                                }
+
+                                level.container.addChild(dl);
                             }
-
-                            level.container.addChild(dl);
-
                         } else if (level.rightHeld &&
                                    ((lr.row === rect.row - 1 && (typeof(lr.downLine) !== 'undefined' && lr.downLine !== null)) ||
                                     (lr.row === rect.row + 1 && (typeof(rect.downLine) !== 'undefined' && rect.downLine !== null)))) {
@@ -229,44 +242,62 @@ function onMouseMove(e) {
                             if (lr.row === rect.row - 1) {
                                 level.container.removeChild(lr.downLine);
 
+                                lr.downLine.destroy();
+
+                                lr.downLine = null;
+
                                 lr.down = false;
                                 rect.up = false;
                             } else {
                                 level.container.removeChild(rect.downLine);
 
+                                rect.downLine.destroy();
+
+                                rect.downLine = null;
+
                                 rect.down = false;
                                 lr.up = false;
                             }
                         }
-                    }
-
-                    if (lr.row === rect.row &&
+                    } else if (lr.row === rect.row &&
                         (lr.column === rect.column - 1 || lr.column === rect.column + 1)) {
 
                         if (level.leftHeld &&
                             ((lr.column === rect.column - 1 && (typeof(lr.rightLine) === 'undefined' || lr.rightLine === null)) ||
                              (lr.column === rect.column + 1 && (typeof(rect.rightLine) === 'undefined' || rect.rightLine === null)))) {
 
-                            var rl = new PIXI.Graphics();
+                            if (rect.up) rectCount++;
+                            if (rect.down) rectCount++;
+                            if (rect.left) rectCount++;
+                            if (rect.right) rectCount++;
 
-                            rl.lineStyle(2, 0xFFFF00, 1);
+                            if (lr.up) lrCount++;
+                            if (lr.down) lrCount++;
+                            if (lr.left) lrCount++;
+                            if (lr.right) lrCount++;
 
-                            rl.moveTo(lr.centerX, lr.centerY);
-                            rl.lineTo(rect.centerX, rect.centerY);
+                            if (rectCount <= 1 && lrCount <= 1) {
+                                var rl = new PIXI.Graphics();
 
-                            if (lr.column === rect.column - 1) {
-                                lr.rightLine = rl;
+                                rl.lineStyle(2, 0xFFFF00, 1);
 
-                                lr.right = true;
-                                rect.left = true;
-                            } else {
-                                rect.rightLine = rl;
+                                rl.moveTo(lr.centerX, lr.centerY);
+                                rl.lineTo(rect.centerX, rect.centerY);
 
-                                rect.right = true;
-                                lr.left = true;
+                                if (lr.column === rect.column - 1) {
+                                    lr.rightLine = rl;
+
+                                    lr.right = true;
+                                    rect.left = true;
+                                } else {
+                                    rect.rightLine = rl;
+
+                                    rect.right = true;
+                                    lr.left = true;
+                                }
+
+                                level.container.addChild(rl);
                             }
-
-                            level.container.addChild(rl);
 
                         } else if (level.rightHeld &&
                                    ((lr.column === rect.column - 1 && (typeof(lr.rightLine) !== 'undefined' && lr.rightLine !== null)) ||
@@ -275,10 +306,18 @@ function onMouseMove(e) {
                             if (lr.column === rect.column - 1) {
                                 level.container.removeChild(lr.rightLine);
 
+                                lr.rightLine.destroy();
+
+                                lr.rightLine = null;
+
                                 lr.right = false;
                                 rect.left = false;
                             } else {
                                 level.container.removeChild(rect.rightLine);
+
+                                rect.rightLine.destroy();
+
+                                rect.rightLine = null;
 
                                 rect.right = false;
                                 lr.left = false;
