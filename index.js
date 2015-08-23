@@ -893,6 +893,20 @@ function animate() {
 
         var plaque = new PIXI.Container();
 
+        plaque.addChild((function() {
+            var bg = new PIXI.Graphics(),
+                bgwidth = 220,
+                bgheight = 140;
+
+            bg.lineStyle(10, 0x0d0d0d, 1);
+
+            bg.beginFill(0x636c6f, 1);
+            bg.drawRoundedRect((GAME_WIDTH / 2) - (bgwidth / 2), (GAME_HEIGHT / 2) - (bgheight / 2) + 55, bgwidth, bgheight, 15);
+            bg.endFill();
+
+            return bg;
+        }()));
+
         var nextArrow = new PIXI.Graphics();
 
         nextArrow.beginFill(0x7fc7af, 1);
@@ -929,6 +943,8 @@ function animate() {
                 level = new Level(levels[levelNum], 10, 10);
 
                 stage.addChild(level.container);
+
+                level.container.interactive = level.container.buttonMode = true;
             }
         });
 

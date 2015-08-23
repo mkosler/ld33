@@ -25536,7 +25536,6 @@ InteractionManager.prototype.mapPositionToPoint = function ( point, x, y )
  */
 InteractionManager.prototype.processInteractive = function (point, displayObject, func, hitTest, interactive )
 {
-    console.log(displayObject);
     if(!displayObject.visible)
     {
         return false;
