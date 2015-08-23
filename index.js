@@ -3,18 +3,51 @@ var SPACE_WIDTH = 80,
     GAME_WIDTH = 800,
     GAME_HEIGHT = 600;
 
-var data = [
-    [ 0, 0, 1, 0, 1, 0, 0, 0, 0, 0 ],
-    [ 0, 0, 0, 0, 1, 0, 0, 0, 2, 0 ],
-    [ 0, 0, 2, 0, 2, 0, 1, 0, 0, 0 ],
-    [ 0, 0, 0, 1, 0, 0, 1, 0, 0, 0 ],
-    [ 2, 0, 0, 0, 0, 1, 0, 0, 0, 1 ],
-    [ 0, 0, 1, 0, 0, 0, 0, 1, 0, 0 ],
-    [ 0, 0, 2, 0, 0, 0, 1, 0, 0, 0 ],
-    [ 1, 0, 0, 0, 2, 0, 0, 0, 0, 1 ],
-    [ 0, 0, 0, 0, 0, 0, 1, 1, 0, 0 ],
-    [ 0, 0, 2, 0, 0, 0, 0, 0, 0, 2 ]
-];
+function Book(stage) {
+    this.stage = stage;
+
+    this.pages = [];
+
+    this.pageNumber = -1;
+
+    this.currentPage = null;
+}
+
+Book.prototype = {
+    next: function() {
+        this.goTo(this.pageNumber + 1);
+    },
+
+    prev: function() {
+        this.goTo(this.pageNumber - 1);
+    },
+
+    goTo: function(n) {
+        this.pageNumber = n;
+
+        if (typeof(this.currentPage) !== 'undefined' && this.currentPage !== null) {
+            this.stage.removeChild(this.currentPage);
+        }
+
+        if (!this.isEnd()) {
+            this.currentPage = this.pages[this.pageNumber];
+
+            this.stage.addChild(this.currentPage);
+        }
+    },
+
+    isEnd: function() {
+        return this.pageNumber >= this.pages.length || this.pageNumber < 0;
+    },
+
+    removeAndDestroy: function() {
+        this.pages.forEach(function(page) {
+            this.stage.removeChild(page);
+
+            page.destroy();
+        });
+    }
+};
 
 function Level(data, rows, columns) {
     this.rows = rows;
@@ -24,6 +57,17 @@ function Level(data, rows, columns) {
     this._data = data;
 
     this.container = new PIXI.Container();
+
+    this.container.hitArea = new PIXI.Rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+    //this.container.interactive = true;
+
+    //this.container.buttonMode = true;
+
+    this.container.on('mousedown', onMouseDown)
+                  .on('mousemove', onMouseMove)
+                  .on('mouseup', onMouseUp)
+                  .on('mouseupoutside', onMouseUp);
 
     this._gridGraphic = new PIXI.Graphics();
 
@@ -205,7 +249,7 @@ Level.prototype = {
                     nextRect.hOpen = rect.hOpen = false;
                 }
             }
-            
+
             if (nextRect === null && rect.right) {
                 nextRect = allRects[rect.row][rect.column + 1];
 
@@ -215,7 +259,7 @@ Level.prototype = {
                     nextRect.hOpen = rect.hOpen = false;
                 }
             }
-            
+
             if (nextRect === null && rect.up) {
                 nextRect = allRects[rect.row - 1][rect.column];
 
@@ -225,7 +269,7 @@ Level.prototype = {
                     nextRect.vOpen = rect.vOpen = false;
                 }
             }
-            
+
             if (nextRect === null && rect.down) {
                 nextRect = allRects[rect.row + 1][rect.column];
 
@@ -417,32 +461,11 @@ var renderer = PIXI.autoDetectRenderer(GAME_WIDTH, GAME_HEIGHT, { backgroundColo
 
 document.body.appendChild(renderer.view);
 
+var levelNum = 0;
+
 var stage = new PIXI.Container();
 
-//stage.hitArea = new PIXI.Rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT);
-
-//stage.interactive = true;
-//stage.buttonMode = true;
-
-//stage.on('mousedown', onMouseDown)
-     //.on('mousemove', onMouseMove)
-     //.on('mouseup', onMouseUp)
-     //.on('mouseupoutside', onMouseUp);
-
-var level = new Level(data, 10, 10);
-
-level.container.hitArea = new PIXI.Rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT);
-
-level.container.interactive = true;
-
-level.container.buttonMode = true;
-
-level.container.on('mousedown', onMouseDown)
-               .on('mousemove', onMouseMove)
-               .on('mouseup', onMouseUp)
-               .on('mouseupoutside', onMouseUp);
-
-var winnerText = null;
+var level = new Level(levels[levelNum], 10, 10);
 
 stage.addChild(level.container);
 
@@ -452,26 +475,466 @@ music.loop = true;
 
 music.play();
 
+var victory = false;
+
+// Front book
+var frontBook = new Book(stage);
+
+frontBook.pages.push((function() {
+    var pageOne = new PIXI.Container();
+
+    pageOne.addChild((function() {
+        var background = new PIXI.Graphics();
+
+        var bgwidth = 3 * GAME_WIDTH / 7,
+            bgheight = 3 * GAME_HEIGHT / 7;
+
+        background.lineStyle(10, 0x0d0d0d, 1);
+
+        background.beginFill(0x636c6f, 1);
+        background.drawRoundedRect((GAME_WIDTH / 2) - (bgwidth / 2), (GAME_HEIGHT / 2) - (bgheight / 2), bgwidth, bgheight, 15);
+        background.endFill();
+
+        return background;
+    }()));
+
+    pageOne.addChild((function() {
+        var titleText = new PIXI.Text('Masyu', {
+            font: 'bold 38px Arial',
+            stroke: 0xFFFFFF,
+            strokeThickness: 2,
+            padding: 10
+        });
+
+        titleText.x = 335;
+        titleText.y = 200;
+
+        return titleText;
+    }()));
+
+    pageOne.addChild((function() {
+        var playButton = new PIXI.Graphics();
+
+        playButton.beginFill(0x84b388, 1);
+        playButton.drawRect(276, 300, 87, 42);
+        playButton.endFill();
+
+        playButton.interactive = playButton.buttonMode = true;
+
+        playButton.on('click', function() {
+            frontBook.removeAndDestroy();
+
+            level.container.interactive = level.container.buttonMode = true;
+        });
+
+        playButton.addChild((function() {
+            var playText = new PIXI.Text('Play', {
+                font: 'bold 18px Arial',
+                stroke: 0xFFFFFF,
+                strokeThickness: 3
+            });
+
+            playText.x = 299;
+            playText.y = 307;
+
+            return playText;
+        }()));
+
+        return playButton;
+    }()));
+
+    pageOne.addChild((function() {
+        var tutorialButton = new PIXI.Graphics();
+
+        tutorialButton.beginFill(0xbed2e6, 1);
+        tutorialButton.drawRect(422, 300, 100, 42);
+        tutorialButton.endFill();
+
+        tutorialButton.interactive = tutorialButton.buttonMode = true;
+
+        tutorialButton.on('click', function() {
+            frontBook.next();
+        });
+
+        tutorialButton.addChild((function() {
+            var tutorialText = new PIXI.Text('Tutorial', {
+                font: 'bold 18px Arial',
+                stroke: 0xFFFFFF,
+                strokeThickness: 3
+            });
+
+            tutorialText.x = 436;
+            tutorialText.y = 307;
+
+            return tutorialText;
+        }()));
+
+        return tutorialButton;
+    }()));
+
+    return pageOne;
+}()));
+
+frontBook.pages.push((function() {
+    var page = new PIXI.Container();
+
+    page.addChild((function() {
+        var background = new PIXI.Graphics();
+
+        var bgwidth = 3 * GAME_WIDTH / 4,
+            bgheight = 3 * GAME_HEIGHT / 4;
+
+        background.lineStyle(10, 0x0d0d0d, 1);
+
+        background.beginFill(0x636c6f, 1);
+        background.drawRoundedRect((GAME_WIDTH / 2) - (bgwidth / 2), (GAME_HEIGHT / 2) - (bgheight / 2), bgwidth, bgheight, 15);
+        background.endFill();
+
+        return background;
+    }()));
+
+    page.addChild((function() {
+        var addText = new PIXI.Text('The object of the game is to create a single, continuous, non-intersecting loop passes through all the special spaces. A line can enter and exit a grid cell in one of the four cardinal directions.\n\nYou play by holding a mouse button down and dragging from one grid cell to another. You add lines by holding down the LEFT mouse button, and remove them by holding down the MIDDLE mouse button', {
+            font: 'bold 20px Arial',
+            stroke: 0xFFFFFF,
+            strokeThickness: 0,
+            wordWrap: true,
+            wordWrapWidth: (3 * GAME_WIDTH / 4) - 25
+        });
+
+        addText.x = 117;
+        addText.y = 103;
+
+        return addText;
+    }()));
+
+    page.addChild((function() {
+        var textures = [];
+
+        for (var i = 0; i <= 20; i++) {
+            textures.push(PIXI.Texture.fromImage('add-split/frame_' + i + '.gif'));
+        }
+
+        var movieClip = new PIXI.extras.MovieClip(textures);
+
+        movieClip.animationSpeed = 0.25;
+
+        movieClip.x = 134;
+        movieClip.y = 340;
+
+        movieClip.play();
+
+        return movieClip;
+    }()));
+
+    page.addChild(function() {
+        var textures = [];
+
+        for (var i = 0; i <= 24; i++) {
+            textures.push(PIXI.Texture.fromImage('remove-split/frame_' + i + '.gif'));
+        }
+
+        var movieClip = new PIXI.extras.MovieClip(textures);
+
+        movieClip.animationSpeed = 0.25;
+
+        movieClip.x = GAME_WIDTH - 334 - 150;
+        movieClip.y = 340;
+
+        movieClip.play();
+
+        return movieClip;
+    }());
+
+    page.addChild((function() {
+        var next = new PIXI.Graphics();
+
+        next.beginFill(0xbed2e6, 1);
+        next.drawRect(543, 388, 87, 42);
+        next.endFill();
+
+        next.interactive = next.buttonMode = true;
+
+        next.on('click', function() {
+            frontBook.next();
+        });
+
+        next.addChild((function() {
+            var text = new PIXI.Text('Next', {
+                font: 'bold 18px Arial',
+                stroke: 0xFFFFFF,
+                strokeThickness: 3
+            });
+
+            text.x = 566;
+            text.y = 395;
+
+            return text;
+        }()));
+
+        return next;
+    }()));
+
+    return page;
+}()));
+
+frontBook.pages.push((function() {
+    var page = new PIXI.Container();
+
+    page.addChild((function() {
+        var bg = new PIXI.Graphics(),
+            bgwidth = GAME_WIDTH / 1.5,
+            bgheight = GAME_HEIGHT / 1.5;
+
+        bg.lineStyle(10, 0x0d0d0d, 1);
+
+        bg.beginFill(0x636c6f, 1);
+        bg.drawRoundedRect((GAME_WIDTH / 2) - (bgwidth / 2), (GAME_HEIGHT / 2) - (bgheight / 2), bgwidth, bgheight, 15);
+        bg.endFill();
+
+        return bg;
+    }()));
+
+    page.addChild((function() {
+        var text = new PIXI.Text('There are two types of special spaces: white and black.\n\nThe white space must be traveled straight through, but must turn in the previous and/or the next cell in its path.', {
+            font: 'bold 20px Arial',
+            wordWrap: true,
+            wordWrapWidth: (GAME_WIDTH / 1.5) - 25,
+        });
+
+        text.x = 155;
+        text.y = 120;
+
+        return text;
+    }()));
+
+    page.addChild((function() {
+        var image = new PIXI.Sprite.fromImage('white.png');
+
+        image.x = 255;
+        image.y = 280;
+
+        return image;
+    }()));
+
+    page.addChild((function() {
+        var prev = new PIXI.Graphics();
+
+        prev.beginFill(0xbed2e6, 1);
+        prev.drawRect(543, 338, 87, 42);
+        prev.endFill();
+
+        prev.interactive = prev.buttonMode = true;
+
+        prev.on('click', function() {
+            frontBook.prev();
+        });
+
+        prev.addChild((function() {
+            var text = new PIXI.Text('Prev', {
+                font: 'bold 18px Arial',
+                stroke: 0xFFFFFF,
+                strokeThickness: 3
+            });
+
+            text.x = 566;
+            text.y = 345;
+
+            return text;
+        }()));
+
+        return prev;
+    }()));
+
+    page.addChild((function() {
+        var next = new PIXI.Graphics();
+
+        next.beginFill(0xbed2e6, 1);
+        next.drawRect(543, 388, 87, 42);
+        next.endFill();
+
+        next.interactive = next.buttonMode = true;
+
+        next.on('click', function() {
+            frontBook.next();
+        });
+
+        next.addChild((function() {
+            var text = new PIXI.Text('Next', {
+                font: 'bold 18px Arial',
+                stroke: 0xFFFFFF,
+                strokeThickness: 3
+            });
+
+            text.x = 566;
+            text.y = 395;
+
+            return text;
+        }()));
+
+        return next;
+    }()));
+
+    return page;
+}()));
+
+frontBook.pages.push((function() {
+    var page = new PIXI.Container();
+
+    page.addChild((function() {
+        var bg = new PIXI.Graphics(),
+            bgwidth = GAME_WIDTH / 1.5,
+            bgheight = GAME_HEIGHT / 1.5;
+
+        bg.lineStyle(10, 0x0d0d0d, 1);
+
+        bg.beginFill(0x636c6f, 1);
+        bg.drawRoundedRect((GAME_WIDTH / 2) - (bgwidth / 2), (GAME_HEIGHT / 2) - (bgheight / 2), bgwidth, bgheight, 15);
+        bg.endFill();
+
+        return bg;
+    }()));
+
+    page.addChild((function() {
+        var text = new PIXI.Text('There are two types of special spaces: white and black.\n\nThe black space must have a turn on their grid cell, but both the next and previous cells must have been traveled straight through.', {
+            font: 'bold 20px Arial',
+            wordWrap: true,
+            wordWrapWidth: (GAME_WIDTH / 1.5) - 25,
+        });
+
+        text.x = 155;
+        text.y = 120;
+
+        return text;
+    }()));
+
+    page.addChild((function() {
+        var image = new PIXI.Sprite.fromImage('black.png');
+
+        image.x = 225;
+        image.y = 280;
+
+        return image;
+    }()));
+
+    page.addChild((function() {
+        var prev = new PIXI.Graphics();
+
+        prev.beginFill(0xbed2e6, 1);
+        prev.drawRect(543, 338, 87, 42);
+        prev.endFill();
+
+        prev.interactive = prev.buttonMode = true;
+
+        prev.on('click', function() {
+            frontBook.prev();
+        });
+
+        prev.addChild((function() {
+            var text = new PIXI.Text('Prev', {
+                font: 'bold 18px Arial',
+                stroke: 0xFFFFFF,
+                strokeThickness: 3
+            });
+
+            text.x = 566;
+            text.y = 345;
+
+            return text;
+        }()));
+
+        return prev;
+    }()));
+
+    page.addChild((function() {
+        var next = new PIXI.Graphics();
+
+        next.beginFill(0x84b388, 1);
+        next.drawRect(543, 388, 87, 42);
+        next.endFill();
+
+        next.interactive = next.buttonMode = true;
+
+        next.on('click', function() {
+            frontBook.removeAndDestroy();
+
+            level.container.interactive = level.container.buttonMode = true;
+        });
+
+        next.addChild((function() {
+            var text = new PIXI.Text('Play', {
+                font: 'bold 18px Arial',
+                stroke: 0xFFFFFF,
+                strokeThickness: 3
+            });
+
+            text.x = 566;
+            text.y = 395;
+
+            return text;
+        }()));
+
+        return next;
+    }()));
+
+    return page;
+}()));
+
+frontBook.next();
+
 function animate() {
     requestAnimationFrame(animate);
 
-    if ((typeof(winnerText) === 'undefined' || winnerText === null) &&
-        level.isComplete() && level.isPathComplete()) {
+    if (!victory && level.isComplete() && level.isPathComplete()) {
+    //if (!victory) {
+        victory = true;
 
-        winnerText = new PIXI.Text('Winner!', {
-            align: 'center',
-            stroke: 0xAFB4BB,
-            strokeThickness: 2
+        level.container.interactive = level.container.buttonMode = false;
+
+        var plaque = new PIXI.Container();
+
+        var nextArrow = new PIXI.Graphics();
+
+        nextArrow.beginFill(0x7fc7af, 1);
+        nextArrow.moveTo(0, 0);
+        nextArrow.lineTo(120, 0);
+        nextArrow.lineTo(120, -30);
+        nextArrow.lineTo(170, 25);
+        nextArrow.lineTo(120, 80);
+        nextArrow.lineTo(120, 50);
+        nextArrow.lineTo(0, 50);
+        nextArrow.endFill();
+
+        nextArrow.x = GAME_WIDTH / 2 - (170 / 2);
+        nextArrow.y = GAME_HEIGHT / 2 + 30;
+
+        nextArrow.interactive = nextArrow.buttonMode = true;
+
+        nextArrow.on('click', function() {
+            victory = false;
+
+            levelNum++;
+
+            stage.removeChild(level.container);
+
+            level.container.destroy();
+
+            stage.removeChild(plaque);
+
+            plaque.destroy();
+
+            if (levelNum >= levels.length) {
+                console.log('were done!');
+            } else {
+                level = new Level(levels[levelNum], 10, 10);
+
+                stage.addChild(level.container);
+            }
         });
 
-        winnerText.x = GAME_WIDTH / 2;
-        winnerText.y = GAME_HEIGHT / 2;
+        plaque.addChild(nextArrow);
 
-        stage.addChild(winnerText);
-
-        level.container.interactive = false;
-
-        level.container.buttonMode = false;
+        stage.addChild(plaque);
     }
 
     renderer.render(stage);
