@@ -5,6 +5,16 @@
 
         <title>Masyu</title>
         <link rel="stylesheet" href="bootstrap.min.css">
+        <style>
+#game {
+    width: 100%;
+    text-align: center;
+}
+
+canvas {
+    display: inline;
+}
+        </style>
     </head>
     <body>
         <div class="container">
@@ -17,8 +27,34 @@
                 </div>
             </div>
             <div class="row">
-                <div class="col-lg-6 col-lg-offset-2">
-                    <div id="game">
+                <div id="game">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-lg-8 col-lg-offset-2">
+                    <p>
+                        Masyu is a puzzle game where the object is to create a single, continuous, non-intersecting loop that passes through all the special spaces. A line can enter and exit a grid cell in one of the four cardinal directions.
+                    </p>
+                    <p>
+                        There are two types of special spaces: white and black:
+                    </p>
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h4 class="panel-title">White</h4>
+                        </div>
+                        <div class="panel-body">
+                            <img src="white.png" class="img-responsive pull-right" alt="White special space" />
+                            A white space must be traveled straight through, but must turn in the previous and/or the next cell in its path.
+                        </div>
+                    </div>
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h4 class="panel-title">Black</h4>
+                        </div>
+                        <div class="panel-body">
+                            <img src="black.png" class="img-responseive pull-right" alt="Black special space" />
+                            A black space must have a turn on their grid cell, but both the next and previous cells must have been traveled straight through.
+                        </div>
                     </div>
                 </div>
             </div>
