@@ -636,7 +636,7 @@ frontBook.pages.push((function() {
     }()));
 
     page.addChild((function() {
-        var addText = new PIXI.Text('The object of the game is to create a single, continuous, non-intersecting loop passes through all the special spaces. A line can enter and exit a grid cell in one of the four cardinal directions.\n\nYou play by holding a mouse button down and dragging from one grid cell to another. You add lines by holding down the LEFT mouse button, and remove them by holding down the MIDDLE mouse button', {
+        var addText = new PIXI.Text('The object of the game is to create a single, continuous, non-intersecting loop passes that through all the special spaces. A line can enter and exit a grid cell in one of the four cardinal directions.\n\nYou play by holding a mouse button down and dragging from one grid cell to another. You add lines by holding down the LEFT mouse button, and remove them by holding down the MIDDLE mouse button', {
             font: 'bold 20px Arial',
             stroke: 0xFFFFFF,
             strokeThickness: 0,
@@ -1066,6 +1066,10 @@ function goToLevel(n) {
     level = null;
 
     if (levelNum >= levels.length) {
+        if (levelSelectBook.isEnd()) {
+            levelSelectBook.next();
+        }
+
         levelSelectBook.show();
     } else {
         level = new Level(levels[levelNum], 10, 10);
