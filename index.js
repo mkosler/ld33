@@ -46,7 +46,15 @@ Book.prototype = {
 
             page.destroy();
         });
-    }
+    },
+
+    hide: function() {
+        this.currentPage.visible = false;
+    },
+
+    show: function() {
+        this.currentPage.visible = true;
+    },
 };
 
 function Level(data, rows, columns) {
@@ -459,7 +467,9 @@ function onMouseMove(e) {
 
 var renderer = PIXI.autoDetectRenderer(GAME_WIDTH, GAME_HEIGHT, { backgroundColor: 0x000000 });
 
-document.body.appendChild(renderer.view);
+document.getElementById("game").appendChild(renderer.view);
+
+//document.body.appendChild(renderer.view);
 
 var levelNum = 0;
 
@@ -524,7 +534,8 @@ frontBook.pages.push((function() {
         playButton.on('click', function() {
             frontBook.removeAndDestroy();
 
-            level.container.interactive = level.container.buttonMode = true;
+            goToLevel(0);
+            //level.container.interactive = level.container.buttonMode = true;
         });
 
         playButton.addChild((function() {
@@ -570,6 +581,37 @@ frontBook.pages.push((function() {
         }()));
 
         return tutorialButton;
+    }()));
+
+    pageOne.addChild((function() {
+        var button = new PIXI.Graphics();
+
+        button.beginFill(0xbed2e6, 1);
+        button.drawRect(339, 358, 110, 42);
+        button.endFill();
+
+        button.interactive = button.buttonMode = true;
+
+        button.on('click', function() {
+            frontBook.removeAndDestroy();
+
+            levelSelectBook.next();
+        });
+
+        button.addChild((function() {
+            var text = new PIXI.Text('Level Select', {
+                font: 'bold 14px Arial',
+                stroke: 0xFFFFFF,
+                strokeThickness: 3
+            });
+
+            text.x = 350;
+            text.y = 368;
+
+            return text;
+        }()));
+
+        return button;
     }()));
 
     return pageOne;
@@ -858,7 +900,8 @@ frontBook.pages.push((function() {
         next.on('click', function() {
             frontBook.removeAndDestroy();
 
-            level.container.interactive = level.container.buttonMode = true;
+            goToLevel(0);
+            //level.container.interactive = level.container.buttonMode = true;
         });
 
         next.addChild((function() {
@@ -882,11 +925,163 @@ frontBook.pages.push((function() {
 
 frontBook.next();
 
+var levelSelectBook = new Book(stage);
+
+levels.forEach(function (level, i) {
+    levelSelectBook.pages.push((function() {
+        var page = new PIXI.Container();
+
+        page.addChild((function() {
+            var bg = new PIXI.Graphics(),
+                bgw = GAME_WIDTH / 1.4,
+                bgh = GAME_HEIGHT / 1.1;
+
+            bg.lineStyle(10, 0x0d0d0d, 1);
+
+            bg.beginFill(0x636c6f, 1);
+            bg.drawRoundedRect((GAME_WIDTH / 2) - (bgw / 2), (GAME_HEIGHT / 2) - (bgh / 2), bgw, bgh, 15);
+            bg.endFill();
+
+            return bg;
+        }()));
+
+        page.addChild((function() {
+            var image = new PIXI.Sprite.fromImage('lvlimages/lvl' + (i + 1) + '.png');
+
+            image.x = (GAME_WIDTH / 2) - (500 / 2);
+            image.y = 65;
+
+            return image;
+        }()));
+
+        if (i > 0) {
+            page.addChild((function() {
+                var prev = new PIXI.Graphics();
+
+                prev.beginFill(0xbed2e6, 1);
+                prev.drawRect(210, 488, 87, 42);
+                prev.endFill();
+
+                prev.interactive = prev.buttonMode = true;
+
+                prev.on('click', function() {
+                    levelSelectBook.prev();
+                });
+
+                prev.addChild((function() {
+                    var text = new PIXI.Text('Prev', {
+                        font: 'bold 18px Arial',
+                        stroke: 0xFFFFFF,
+                        strokeThickness: 3
+                    });
+
+                    text.x = 233;
+                    text.y = 495;
+
+                    return text;
+                }()));
+
+                return prev;
+            }()));
+        }
+
+        page.addChild((function() {
+            var play = new PIXI.Graphics();
+
+            play.beginFill(0x84b388, 1);
+            play.drawRect((GAME_WIDTH / 2) - (87 / 2), 488, 87, 42);
+            play.endFill();
+
+            play.interactive = play.buttonMode = true;
+
+            play.on('click', function() {
+                goToLevel(i);
+
+                levelSelectBook.hide();
+                //levelSelectBook.removeAndDestroy();
+            });
+
+            play.addChild((function() {
+                var text = new PIXI.Text('Play', {
+                    font: 'bold 18px Arial',
+                    stroke: 0xFFFFFF,
+                    strokeThickness: 3
+                });
+
+                text.x = (GAME_WIDTH / 2) - (87 / 2) + 23;
+                text.y = 495;
+
+                return text;
+            }()));
+
+            return play;
+        }()));
+
+        if (i < levels.length - 1) {
+            page.addChild((function() {
+                var next = new PIXI.Graphics();
+
+                next.beginFill(0xbed2e6, 1);
+                next.drawRect(503, 488, 87, 42);
+                next.endFill();
+
+                next.interactive = next.buttonMode = true;
+
+                next.on('click', function() {
+                    levelSelectBook.next();
+                });
+
+                next.addChild((function() {
+                    var text = new PIXI.Text('Next', {
+                        font: 'bold 18px Arial',
+                        stroke: 0xFFFFFF,
+                        strokeThickness: 3
+                    });
+
+                    text.x = 526;
+                    text.y = 495;
+
+                    return text;
+                }()));
+
+                return next;
+            }()));
+        }
+
+        return page;
+    }()));
+});
+
+function goToLevel(n) {
+    victory = false;
+
+    levelNum = n;
+
+    if (typeof(level) !== 'undefined' && level !== null) {
+        stage.removeChild(level.container);
+
+        level.container.destroy();
+    }
+
+    level = null;
+
+    if (levelNum >= levels.length) {
+        levelSelectBook.show();
+    } else {
+        level = new Level(levels[levelNum], 10, 10);
+
+        stage.addChild(level.container);
+
+        level.container.interactive = level.container.buttonMode = true;
+    }
+}
+
 function animate() {
     requestAnimationFrame(animate);
 
-    if (!victory && level.isComplete() && level.isPathComplete()) {
-    //if (!victory) {
+    if (!victory &&
+        (typeof(level) !== 'undefined' && level !== null) &&
+        level.isComplete() && level.isPathComplete()) {
         victory = true;
 
         level.container.interactive = level.container.buttonMode = false;
@@ -925,27 +1120,11 @@ function animate() {
         nextArrow.interactive = nextArrow.buttonMode = true;
 
         nextArrow.on('click', function() {
-            victory = false;
-
-            levelNum++;
-
-            stage.removeChild(level.container);
-
-            level.container.destroy();
-
             stage.removeChild(plaque);
 
             plaque.destroy();
 
-            if (levelNum >= levels.length) {
-                console.log('were done!');
-            } else {
-                level = new Level(levels[levelNum], 10, 10);
-
-                stage.addChild(level.container);
-
-                level.container.interactive = level.container.buttonMode = true;
-            }
+            goToLevel(levelNum + 1);
         });
 
         plaque.addChild(nextArrow);
